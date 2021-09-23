@@ -1,0 +1,156 @@
+version: '3'
+services: 
+
+  ####################################################
+  # Prometheus
+  # Listens on port 9090
+  ####################################################
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    user: 999:999
+    restart: unless-stopped
+    network_mode: host # required to be able to scrape from scrapers on localhost
+    pid: host
+    volumes: 
+      - /home/leo/docker/grafana_compose/prometheus/config/:/etc/prometheus
+      - /home/leo/docker/grafana_compose/prometheus/data:/data/prometheus
+    command: 
+    - '--config.file=/etc/prometheus/prometheus.yml'
+    - '--storage.tsdb.path=/data/prometheus'
+
+  ####################################################
+  # Node exporter
+  # Listens on port 9100 by default
+  ####################################################
+  node_exporter:  
+    image: prom/node-exporter:latest
+    container_name: node_exporter
+    user: 998:998
+    restart: unless-stopped
+    command:
+      - '--path.rootfs=/host'
+      - '--collector.processes'
+      - '--collector.systemd'
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+    network_mode: host  # required for full functionality
+    pid: host           # required for full functionality
+    volumes:
+      - '/:/host:ro,rslave'
+
+  ####################################################
+  # Sensors Exporter
+  # Listens on port 9255 by default
+  ####################################################
+  sensors_exporter:  
+    image: epflsti/cluster.coreos.prometheus-sensors:latest
+    container_name: sensors_exporter
+    restart: unless-stopped
+    user: 997:997
+    ports:
+      - 9255:9255
+    command: 
+      - '--path.rootfs=/hostfs'
+    volumes:
+      - '/:/hostfs:ro'
+
+  ####################################################
+  # GPU Exporter
+  # Listens on port 9445 by default
+  ####################################################
+  gpu_exporter:
+    image: mindprince/nvidia_gpu_prometheus_exporter:0.1
+    container_name: gpu_exporter
+    restart: unless-stopped
+    user: 990:990
+    #network_mode: host
+    #pid: host
+    #cap_add: 
+    #  - SYS_ADMIN
+    ports:
+      - 9445:9445
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - capabilities: [gpu]    
+    volumes: 
+      - /usr/local/cuda/lib64/stubs/:/usr/cuda
+    environment: 
+      -  LD_LIBRARY_PATH=/usr/cuda/libnvidia-ml.so
+
+  ####################################################
+  # Docker Exporter
+  # Listens on port 8080 by default --> map to 8082 on localhost
+  ####################################################
+  cadvisor:
+    image: google/cadvisor:latest
+    container_name: cadvisor
+    privileged: true
+    ports:
+      - 8082:8080
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    devices:
+      - /dev/kmsg
+    restart: unless-stopped
+
+
+  #####################################################
+  # Loki
+  # Listens on port 3100 by default
+  #####################################################
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    restart: unless-stopped
+    user: 993:993
+    volumes:
+      - /home/leo/docker/grafana_compose/loki/:/mnt/config
+    command: 
+      - -config.file=/mnt/config/loki-config.yaml
+    network_mode: host
+    pid: host
+
+
+
+  #####################################################
+  # Promtail 
+  # Listens on port 9080 by default
+  # Run as root since it needs access to all logs
+  #####################################################
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    restart: unless-stopped
+    volumes:
+      - /home/leo/docker/grafana_compose/promtail/:/mnt/config
+      - /var/log/:/var/log
+    command: 
+      - -config.file=/mnt/config/promtail-config.yaml
+    network_mode: host
+    pid: host
+    depends_on: 
+      - loki
+
+  #####################################################
+  # Grafana
+  # Listens on port 3000 by default
+  #####################################################
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    user: 472:472
+    depends_on:
+      - promtail
+      - prometheus
+    network_mode: host
+    pid: host
+    volumes:
+      - /home/leo/docker/grafana_compose/grafana/data/:/var/lib/grafana
+    restart: unless-stopped
