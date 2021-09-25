@@ -1,0 +1,155 @@
+version: '3'
+services:
+
+  ####################################################
+  # Heimdall
+  ####################################################
+  heimdall:
+    image: ghcr.io/linuxserver/heimdall:latest
+    container_name: heimdall
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - ./heimdall/appdata:/config
+      - ./heimdall/icons:/var/www/localhost/heimdall/public
+    ports:
+      - 86:80
+      - 446:443
+    restart: unless-stopped
+
+
+  ####################################################
+  # Scipy-notebook
+  # Setup guide: https://jupyter-docker-stacks.readthedocs.io/en/latest/using/common.html#docker-options
+  ####################################################
+  scipy:
+    image: jupyter/scipy-notebook:latest
+    container_name: scipy
+    user: 1000:1000
+    volumes:
+      - ./jupyter_notebook_data/:/home/jovyan/work/ 
+    restart: unless-stopped
+    ports:
+      - 8886:8888
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+    #command: start-notebook.sh --ServerApp.password="<SHA1 password hash>"
+
+  ####################################################
+  # Tensorflow notebook
+  # (to run only if you have a GPU in the server, with drivers already installed)
+  ####################################################
+  tensorflow: 
+    image: tensorflow/tensorflow:latest-gpu-jupyter
+    container_name: tensorflow
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - capabilities: [gpu]        
+    volumes: 
+      - ./tensorflow_gpu/files/:/tf/notebooks
+    restart: unless-stopped
+    ports: 
+      - 8884:8888
+    environment: 
+      - JUPYTER_ENABLE_LAB=yes      
+
+  ####################################################
+  # Psitransfer (Drag-and-drop upload service)
+  ####################################################
+  psitransfer:
+    image: psitrax/psitransfer:latest
+    container_name: psitransfer
+    user: 1000:1000
+    environment:
+      - PSITRANSFER_ADMIN_PASS=boiler
+    volumes: 
+      - ./psitransfer/data:/data
+    ports: 
+      - 3004:3000
+    restart: unless-stopped
+
+  ####################################################
+  # Librespeed (speedtest service)
+  ####################################################
+  librespeed:
+    image: adolfintel/speedtest:latest
+    container_name: librespeed
+    environment:
+      - MODE=standalone
+      - TELEMETRY=true
+      - PASSWORD="<PASSWORD>"
+    ports: 
+      - 3005:80
+    restart: unless-stopped
+
+  ####################################################
+  # Home Assistant
+  # Port 8123 is automatically forwarded (defined in dockerfile)
+  ####################################################
+  homeassistant:
+    image: ghcr.io/linuxserver/homeassistant:latest
+    container_name: homeassistant
+    network_mode: host
+    environment:
+      - PUID=986
+      - PGID=1000
+      - TZ=Europe/Zurich
+    volumes:
+      - ./home_assistant/data:/config
+    #devices:
+    #  - /path/to/device:/path/to/device
+    restart: unless-stopped
+
+
+
+  ####################################################
+  # Jellyfin
+  ####################################################
+  jellyfin:
+    container_name: jellyfin
+    image: ghcr.io/linuxserver/jellyfin:latest
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - capabilities: [gpu]    
+    environment:
+      - PUID=989
+      - PGID=1002
+      - TZ=Europe/Zurich
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all # required otherwise transcoding won't work
+    volumes:
+      - ./jellyfin/data:/config
+      #- <local_folder>:/data/Cartoons
+      #- <local_folder>:/data/Movies
+      #- <local_folder>:/data/TV_Series
+    ports:
+      - 8096:8096
+    restart: unless-stopped
+    
+
+  ####################################################
+  # YoutubeDL
+  ####################################################
+  ytdl_material:
+    container_name: youtubeDL
+    environment: 
+      ALLOW_CONFIG_MUTATIONS: 'true'
+      UID: 985
+      GID: 985
+    restart: unless-stopped
+    volumes:
+      - ./youtubeDL/appdata:/app/appdata
+      - ./youtubeDL/subscriptions:/app/subscriptions
+      - ./youtubeDL/users:/app/users
+      #- <local_folder>:/app/audio
+      #- <local_folder>:/app/video
+
+    ports:
+      - "8998:17442"
+    image: tzahi12345/youtubedl-material:latest
