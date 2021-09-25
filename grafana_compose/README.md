@@ -11,3 +11,6 @@ Basically it runs grafana with prometheus for metrics collection and and promtai
 
 ### Loki tasks
 - Nginx reverse proxy logs monitoring
+
+### Instructions
+- Create system users on host systems 
