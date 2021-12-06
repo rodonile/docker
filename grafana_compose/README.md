@@ -1,7 +1,7 @@
 ## Use case
 
 Docker stack I have deployed in my homelab server (with Ubuntu 18.04) to monitor various hardware and software resources.
-Basically it runs grafana with prometheus for metrics collection and and promtail/loki for logs collection.
+Basically it runs grafana with prometheus for metrics collection, promtail/loki for logs collection and influxdb as time-series database (collecting data from telegraf and from various sensor nodes via homeassistant/nodered stack).
 
 ### Prometheus scrapers
 - Node exporter (various system stats like CPU usage, memory, disk, network, etc.)
