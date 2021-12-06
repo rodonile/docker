@@ -11,7 +11,19 @@ Basically it runs grafana with prometheus for metrics collection and and promtai
 
 ### Loki tasks
 - Nginx reverse proxy logs monitoring
+- System logs
+
+### Grafana Dashboards
+- Home Dashboard (custom created, source in grafana_home_dashboard.json):
+
+![Alt text](dashboard.jpg)
+
+- Node exporter: https://grafana.com/grafana/dashboards/1860
+- Sensor exporter: https://github.com/epfl-sti/cluster.coreos.prometheus-sensors
+- GPU exporter: https://grafana.com/grafana/dashboards/6387
+- cAdvisor: https://grafana.com/grafana/dashboards/193
+- Nginx: https://grafana.com/grafana/dashboards/12559
 
 ### Instructions
 - Create system users on host system. Alternatives: user: 1000 (to run containers as main system user) or comment out "user" parameter for the services in docker-compose.yml and run every container as root)
-- Run the stack docker-compose up -d 
+- Run the stack docker-compose up -d
