@@ -104,7 +104,6 @@ services:
   #####################################################
   # InfluxDB & Telegraf
   # Listens on port 8086 by default
-  # User/DB: grafana, PW: swaggrafana-password
   #####################################################
   influxdb:
       image: influxdb:latest
